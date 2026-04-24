@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Power Design Inc – Phenolic Label Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ══════════════════════════════════════════════
+   TOKENS — exact match to pdi-production login.css
+══════════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0d1117;
+  --surface:#111827;
+  --surface2:#1a2236;
+  --border:#1e2d45;
+  --border2:#2d4166;
+  --red:#e63329;
+  --red2:#c42820;
+  --text:#f0f4fa;
+  --muted:#9aaac0;
+  --success:#2ecc71;
+  --sans:'Barlow',sans-serif;
+  --cond:'Barlow Condensed',sans-serif;
+}
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;display:flex;flex-direction:column;}
+
+/* ══ NAV — pixel-perfect match to login page ══ */
+.pdi-nav{
+  background:rgba(13,17,23,0.97);
+  border-bottom:1px solid var(--border);
+  height:64px;padding:0 36px;
+  display:flex;align-items:center;gap:16px;
+  position:sticky;top:0;z-index:60;
+  backdrop-filter:blur(10px);
+}
+.logo-wrap{display:flex;align-items:center;gap:14px;}
+.logo-wrap a{display:flex;align-items:center;}
+.logo-wrap img{height:44px;width:auto;filter:brightness(0) invert(1);}
+.logo-text-fallback{font-family:var(--cond);font-size:22px;font-weight:800;color:#fff;letter-spacing:0.04em;display:none;}
+.logo-text-fallback span{color:var(--red);}
+.logo-divider{width:1px;height:32px;background:var(--border2);margin:0 2px;}
+.logo-label{display:flex;flex-direction:column;gap:2px;}
+.logo-label strong{font-family:var(--cond);font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;line-height:1.3;}
+.nav-right{font-size:12px;color:var(--muted);font-family:var(--cond);letter-spacing:0.06em;}
+.nav-spacer{flex:1;}
+.step-pills{display:flex;gap:6px;}
+.step-pill{font-size:11px;font-family:var(--cond);font-weight:700;letter-spacing:0.09em;text-transform:uppercase;padding:5px 16px;border-radius:99px;border:1px solid var(--border2);color:var(--muted);transition:all 0.2s;}
+.step-pill.active{border-color:var(--red);color:var(--red);background:rgba(230,51,41,0.1);}
+.step-pill.done{border-color:var(--success);color:var(--success);background:rgba(46,204,113,0.07);}
+
+/* ══ HERO — exact login page layout ══ */
+.hero{
+  display:flex;align-items:stretch;
+  min-height:220px;
+  position:relative;overflow:hidden;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+}
+.gradient-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(230,51,41,0.09) 0%,rgba(13,17,23,0) 55%),
+             linear-gradient(to right,rgba(13,17,23,0.3) 0%,transparent 100%);
+  pointer-events:none;z-index:0;
+}
+.hero-copy{
+  flex:1;padding:36px 48px;
+  display:flex;flex-direction:column;justify-content:center;gap:14px;
+  position:relative;z-index:1;
+}
+.hero-copy .baby-bolts{display:block;}
+.hero-title{
+  font-family:var(--cond);font-size:42px;font-weight:800;
+  letter-spacing:0.04em;line-height:1.05;text-transform:uppercase;color:var(--text);
+}
+.hero-title .red{color:var(--red);}
+.hero-sub{font-size:11px;font-weight:700;font-family:var(--cond);color:var(--muted);letter-spacing:0.14em;text-transform:uppercase;}
+.hero-rule{width:48px;height:2px;background:var(--red);}
+.hero-desc{font-size:13px;color:var(--muted);line-height:1.65;max-width:360px;}
+
+/* RIGHT PANEL — app card instead of login card */
+.hero-right{
+  width:380px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  padding:32px 36px;
+  border-left:1px solid var(--border);
+  position:relative;z-index:1;
+  background:rgba(13,17,23,0.5);
+}
+.app-card{
+  width:100%;
+  background:rgba(17,24,39,0.96);
+  border:1px solid var(--border2);
+  border-radius:14px;
+  padding:28px 24px;
+  display:flex;flex-direction:column;gap:16px;
+}
+.card-eyebrow{font-family:var(--cond);font-size:10px;font-weight:700;color:var(--red);letter-spacing:0.14em;text-transform:uppercase;}
+.card-title{font-family:var(--cond);font-size:22px;font-weight:800;color:var(--text);letter-spacing:0.03em;}
+.card-sub{font-size:12px;color:var(--muted);line-height:1.5;}
+.card-divider{height:1px;background:var(--border);margin:2px 0;}
+.btn-app{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;padding:13px 20px;border-radius:8px;
+  font-family:var(--cond);font-size:14px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;
+  cursor:pointer;transition:all 0.18s;border:none;text-decoration:none;
+}
+.btn-app-primary{background:var(--red);color:#fff;}
+.btn-app-primary:hover{background:var(--red2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(230,51,41,0.3);}
+.btn-app-outline{background:transparent;border:1px solid var(--border2);color:var(--text);}
+.btn-app-outline:hover{border-color:var(--text);background:rgba(255,255,255,0.04);}
+.btn-app svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+.card-note{font-size:11px;color:var(--muted);text-align:center;font-family:var(--cond);letter-spacing:0.03em;}
+
+/* ══ MAIN ══ */
+main{flex:1;max-width:1280px;width:100%;margin:0 auto;padding:36px 40px;}
+
+/* ══ SECTION TITLE ══ */
+.section-title{font-family:var(--cond);font-size:11px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;color:var(--muted);margin-bottom:20px;display:flex;align-items:center;gap:12px;}
+.section-title .bolt{color:var(--red);}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ══ DROP ZONE ══ */
+.drop-zone{border:1.5px dashed var(--border2);border-radius:10px;padding:44px 40px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--surface);position:relative;}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--red);background:rgba(230,51,41,0.04);}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-icon{width:44px;height:44px;margin:0 auto 14px;border:1px solid var(--border2);border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--surface2);}
+.upload-icon svg{width:22px;height:22px;stroke:var(--red);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
+.drop-title{font-family:var(--cond);font-size:17px;font-weight:700;color:var(--text);margin-bottom:5px;}
+.drop-sub{font-size:12px;color:var(--muted);}
+.drop-sub b{color:var(--red);font-weight:600;}
+
+/* ══ OR ══ */
+.or-div{display:flex;align-items:center;gap:14px;margin:22px 0;color:var(--muted);font-size:11px;font-family:var(--cond);letter-spacing:0.08em;text-transform:uppercase;}
+.or-div::before,.or-div::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ══ FORM FIELDS ══ */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.field label{display:block;font-size:10px;font-family:var(--cond);font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.08em;}
+.field input,.field select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:13px;padding:9px 12px;outline:none;transition:border-color 0.15s;}
+.field input:focus,.field select:focus{border-color:var(--red);}
+.field select option{background:var(--surface2);}
+
+/* ══ TABLE — Line 1-4, Size, Letter H only ══ */
+.tbl-wrap{border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.tbl-head{display:grid;grid-template-columns:28px 1fr 1fr 1fr 1fr 80px 72px 28px;padding:8px 12px;background:var(--surface2);font-size:9px;font-family:var(--cond);font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;}
+.row-item{display:grid;grid-template-columns:28px 1fr 1fr 1fr 1fr 80px 72px 28px;padding:7px 12px;border-top:1px solid var(--border);background:var(--surface);align-items:center;transition:background 0.1s;}
+.row-item:hover{background:var(--surface2);}
+.row-item input{background:transparent;border:none;color:var(--text);font-family:var(--sans);font-size:12px;width:100%;padding:0 4px;outline:none;}
+.row-item input:focus{background:rgba(230,51,41,0.06);border-radius:3px;}
+.row-num{color:var(--muted);font-family:var(--cond);font-size:10px;font-weight:600;}
+.del-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;transition:color 0.15s;}
+.del-btn:hover{color:var(--red);}
+.add-row-btn{width:100%;margin-top:8px;background:none;border:1px dashed var(--border2);border-radius:6px;color:var(--muted);font-family:var(--cond);font-size:11px;font-weight:700;letter-spacing:0.07em;padding:8px;cursor:pointer;transition:all 0.15s;text-transform:uppercase;}
+.add-row-btn:hover{border-color:var(--red);color:var(--red);}
+
+/* ══ BUTTONS ══ */
+.btn{font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;padding:11px 28px;border-radius:6px;border:none;cursor:pointer;transition:all 0.15s;}
+.btn-primary{background:var(--red);color:#fff;}
+.btn-primary:hover{background:var(--red2);transform:translateY(-1px);}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text);}
+.btn-outline:hover{border-color:var(--text);}
+.btn-success{background:var(--success);color:#0d1117;font-size:14px;}
+.btn-success:hover{opacity:0.88;transform:translateY(-1px);}
+.btn-row{display:flex;gap:10px;margin-top:24px;align-items:center;flex-wrap:wrap;}
+
+/* ══ PROJECT BAR ══ */
+.project-bar{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:0 8px 8px 0;padding:12px 20px;display:flex;gap:30px;margin-bottom:24px;flex-wrap:wrap;}
+.project-bar-item span{font-size:9px;font-family:var(--cond);font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:2px;}
+.project-bar-item strong{font-size:14px;font-weight:600;}
+
+/* ══ JOB CARDS ══ */
+.jobs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;}
+.job-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.job-card-header{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.job-swatch{width:18px;height:18px;border-radius:3px;border:1px solid rgba(255,255,255,0.12);flex-shrink:0;}
+.job-title{font-family:var(--cond);font-size:14px;font-weight:700;flex:1;letter-spacing:0.04em;}
+.job-badge{font-family:var(--cond);font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;background:rgba(230,51,41,0.14);color:var(--red);border:1px solid rgba(230,51,41,0.28);text-transform:uppercase;letter-spacing:0.07em;}
+.job-meta{padding:11px 16px;display:flex;gap:18px;flex-wrap:wrap;border-bottom:1px solid var(--border);}
+.job-meta-item span{font-size:9px;font-family:var(--cond);font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:2px;}
+.job-meta-item strong{font-size:14px;font-weight:600;}
+.label-previews{padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;}
+.label-wrap{cursor:pointer;transition:transform 0.15s;}
+.label-wrap:hover{transform:scale(1.06);}
+.qty-badge{font-size:10px;font-family:var(--cond);font-weight:700;color:var(--red);text-align:center;margin-top:3px;}
+.edit-hint{font-size:9px;font-family:var(--cond);color:var(--muted);text-align:center;margin-top:1px;text-transform:uppercase;letter-spacing:0.05em;}
+
+/* ══ SAVE ALL BANNER ══ */
+.save-all-banner{
+  background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--success);
+  border-radius:0 8px 8px 0;padding:16px 20px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  margin-bottom:24px;flex-wrap:wrap;
+}
+.save-all-banner p{font-family:var(--cond);font-size:13px;color:var(--muted);letter-spacing:0.02em;}
+.save-all-banner p b{color:var(--text);}
+.save-all-banner .btn-success{padding:10px 28px;}
+
+/* ══ EDIT MODAL ══ */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:28px;width:560px;max-width:96vw;max-height:92vh;overflow-y:auto;}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.modal-header h2{font-family:var(--cond);font-size:18px;font-weight:700;letter-spacing:0.04em;}
+.modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:24px;line-height:1;}
+.modal-close:hover{color:var(--text);}
+.modal-preview-wrap{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:24px;display:flex;justify-content:center;align-items:center;margin-bottom:20px;min-height:90px;}
+.modal-fields{display:flex;flex-direction:column;gap:12px;}
+.modal-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modal-actions{display:flex;gap:10px;margin-top:22px;}
+.modal-actions .btn{flex:1;text-align:center;}
+
+/* ══ EXPORT ══ */
+.export-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.export-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px;}
+.export-card-header{display:flex;align-items:center;gap:10px;}
+.export-card-title{font-family:var(--cond);font-size:15px;font-weight:700;letter-spacing:0.04em;}
+.export-meta{font-size:12px;color:var(--muted);font-family:var(--cond);line-height:1.9;}
+.export-meta b{color:var(--text);font-weight:600;}
+.export-note{background:rgba(230,51,41,0.07);border:1px solid rgba(230,51,41,0.22);border-radius:6px;padding:10px 12px;font-size:11px;font-family:var(--cond);color:var(--red);line-height:1.6;}
+.export-card .btn{width:100%;text-align:center;}
+
+/* ══ TOAST ══ */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--red);color:#fff;font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;padding:10px 22px;border-radius:6px;opacity:0;pointer-events:none;transition:opacity 0.3s;z-index:999;}
+#toast.show{opacity:1;}
+
+/* ══ FOOTER — exact login page ══ */
+footer{background:var(--surface);border-top:1px solid var(--border);padding:18px 40px;display:flex;align-items:center;justify-content:space-between;}
+footer p{font-size:11px;color:var(--muted);}
+.footer-bolt{display:flex;align-items:center;gap:6px;font-family:var(--cond);font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.08em;}
+
+/* ══ SECTIONS ══ */
+#s-input{display:block;}
+#s-preview{display:none;}
+#s-export{display:none;}
+</style>
+</head>
+<body>
+
+<!-- ══ NAV — exact login page ══ -->
+<nav class="pdi-nav">
+  <div class="logo-wrap">
+    <a href="https://www.powerdesigninc.us" target="_blank" rel="noopener noreferrer">
+      <img src="https://pdi-production-ef2b.up.railway.app/images/pdLogo_282.webp"
+           alt="Power Design Inc"
+           onerror="this.style.display='none';document.getElementById('logo-fallback').style.display='inline-block'"/>
+    </a>
+    <div class="logo-text-fallback" id="logo-fallback">Power<span>Design</span></div>
+    <div class="logo-divider"></div>
+    <div class="logo-label">
+      <strong>Request And Notification</strong>
+      <strong>Asset Management System</strong>
+    </div>
+  </div>
+  <div class="nav-spacer"></div>
+  <div class="step-pills">
+    <div class="step-pill active" id="pill-1">01 · Input</div>
+    <div class="step-pill" id="pill-2">02 · Preview</div>
+    <div class="step-pill" id="pill-3">03 · Export</div>
+  </div>
+  <div class="nav-right" style="margin-left:20px;">St. Petersburg, FL</div>
+</nav>
+
+<!-- ══ HERO — exact login page layout ══ -->
+<div class="hero">
+  <div class="gradient-overlay"></div>
+
+  <!-- LEFT — branding copy matching login page exactly -->
+  <div class="hero-copy">
+    <svg class="baby-bolts" width="161" height="29" viewBox="0 0 161 29" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M8.5 0L2 10h4.5L5 18 12 8H7.5L8.5 0z"  fill="#e63329"/>
+      <path d="M28.5 0L22 10h4.5L25 18 32 8H27.5L28.5 0z" fill="#e63329"/>
+      <path d="M48.5 0L42 10h4.5L45 18 52 8H47.5L48.5 0z" fill="#e63329"/>
+      <path d="M68.5 0L62 10h4.5L65 18 72 8H67.5L68.5 0z" fill="#e63329"/>
+    </svg>
+    <h1 class="hero-title">
+      TOGETHER<br>
+      WE ARE<br>
+      <span class="red">POWER</span><br>
+      DESIGN
+    </h1>
+    <p class="hero-sub">OUR INTERNAL PORTAL</p>
+    <div class="hero-rule"></div>
+  </div>
+
+  <!-- RIGHT — portal link only -->
+  <div class="hero-right">
+    <div class="app-card">
+      <div class="card-eyebrow">Power Design Inc</div>
+      <div class="card-title">PDI Asset Management</div>
+      <div class="card-sub">Return to the main portal to access all internal tools and asset tracking.</div>
+      <div class="card-divider"></div>
+
+      <a class="btn-app btn-app-primary" href="https://pdi-production-ef2b.up.railway.app/login" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Back to Portal Login
+      </a>
+
+      <div class="card-note">St. Petersburg, FL · Trotec Ruby · Sheet 24" × 12"</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<main>
+
+<!-- INPUT -->
+<div id="s-input">
+  <div class="section-title"><span class="bolt">▸</span> Upload or enter label data</div>
+
+  <div class="drop-zone" id="drop-zone">
+    <input type="file" id="file-input" accept=".xlsx,.xls,.csv"/>
+    <div class="upload-icon">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </div>
+    <div class="drop-title">Drop Phenolic Label Request Form here</div>
+    <div class="drop-sub">Supports <b>.xlsx</b> · <b>.xls</b> · <b>.csv</b> — new file clears existing data</div>
+  </div>
+
+  <div class="or-div">or enter manually</div>
+
+  <div class="form-grid">
+    <div class="field"><label>Project Name</label><input id="proj-name" type="text"/></div>
+    <div class="field"><label>Employee Name</label><input id="emp-name" type="text"/></div>
+  </div>
+
+  <!-- TABLE: Line 1-4 · Size · Letter H only — Color/Mount/Qty removed per request -->
+  <div class="tbl-wrap">
+    <div class="tbl-head">
+      <div>#</div>
+      <div>Line 1 *</div>
+      <div>Line 2</div>
+      <div>Line 3</div>
+      <div>Line 4</div>
+      <div>Size HxW</div>
+      <div>Letter H</div>
+      <div></div>
+    </div>
+    <div id="rows-container"></div>
+  </div>
+  <button class="add-row-btn" onclick="addRow()">+ Add Row</button>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="processData()">Generate Labels →</button>
+    <button class="btn btn-outline" onclick="loadSample()">Load Sample Data</button>
+  </div>
+</div>
+
+<!-- PREVIEW -->
+<div id="s-preview">
+  <div class="section-title"><span class="bolt">▸</span> Preview — click any label to edit</div>
+  <div id="project-bar" class="project-bar"></div>
+  <div id="jobs-container" class="jobs-grid"></div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="goToExport()">Proceed to Export →</button>
+    <button class="btn btn-outline" onclick="goToInput()">← Back</button>
+  </div>
+</div>
+
+<!-- EXPORT -->
+<div id="s-export">
+  <div class="section-title"><span class="bolt">▸</span> Download SVG files for Trotec Ruby</div>
+
+  <!-- SAVE ALL BANNER -->
+  <div class="save-all-banner">
+    <p><b id="save-all-label">Ready to download all jobs</b><br>24"×12" sheet · pages calculated automatically · white bg · black engrave · red cut line</p>
+    <button class="btn btn-success" onclick="downloadAll()">↓ Save All Jobs</button>
+  </div>
+
+  <div id="export-container" class="export-grid"></div>
+  <div class="btn-row">
+    <button class="btn btn-success" onclick="downloadAll()">↓ Download All Jobs</button>
+    <button class="btn btn-outline" onclick="goToPreview()">← Back to Preview</button>
+  </div>
+</div>
+
+</main>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Edit Label</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-preview-wrap" id="modal-preview"></div>
+    <div class="modal-fields">
+      <div class="field"><label>Line 1</label><input id="ed-l1" type="text" oninput="refreshModal()"/></div>
+      <div class="field"><label>Line 2</label><input id="ed-l2" type="text" oninput="refreshModal()"/></div>
+      <div class="field"><label>Line 3</label><input id="ed-l3" type="text" oninput="refreshModal()"/></div>
+      <div class="field"><label>Line 4</label><input id="ed-l4" type="text" oninput="refreshModal()"/></div>
+      <div class="modal-grid-2">
+        <div class="field"><label>Label Color</label>
+          <select id="ed-color" onchange="refreshModal()">
+            <option>Black</option><option>Red</option><option>Blue</option>
+            <option>Green</option><option>Yellow</option><option>White</option><option>Gray</option>
+          </select>
+        </div>
+        <div class="field"><label>Size (HxW)</label><input id="ed-size" type="text" oninput="refreshModal()"/></div>
+      </div>
+      <div class="modal-grid-2">
+        <div class="field"><label>Letter Height</label><input id="ed-lh" type="text" oninput="refreshModal()"/></div>
+        <div class="field"><label>Mount</label>
+          <select id="ed-mount" onchange="refreshModal()">
+            <option value="Tape">Tape</option>
+            <option value="Rivet">Rivet</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Quantity</label><input id="ed-qty" type="number" min="1"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveModal()">Save Changes</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER — exact login page -->
+<footer>
+  <p>&copy; 2026 Power Design Inc. &mdash; All rights reserved</p>
+  <div class="footer-bolt">
+    <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M6 0L0 9h4L3 16 10 7H6L6 0z" fill="#e63329"/></svg>
+    <span>PDI</span>
+  </div>
+</footer>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let projectInfo = {};
+let jobs        = [];
+let rowCount    = 0;
+let editingJob  = -1, editingRow = -1;
+
+const PPI          = 72;
+const RIVET_INSET  = 0.12;
+const RIVET_RADIUS = 0.02;
+
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+const esc    = s => String(s||'').replace(/"/g,'&quot;');
+const escXML = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const san    = s => String(s||'').replace(/[^a-zA-Z0-9_\-]/g,'_').replace(/_+/g,'_').slice(0,40);
+
+function colorToHex(c){
+  return({black:'#1c1c1c',red:'#c0282a',blue:'#163d7a',green:'#1a5e28',
+          yellow:'#b89010',white:'#ebebeb',gray:'#4a4a4a',grey:'#4a4a4a'})[String(c).toLowerCase()]||'#1c1c1c';
+}
+function parseSize(s){
+  const m=String(s).replace(/['"]/g,'').toLowerCase().match(/([\d.]+)\s*[x×]\s*([\d.]+)/);
+  return m?{h:parseFloat(m[1]),w:parseFloat(m[2])}:{h:2,w:3};
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ══════════════════════════════════════════════
+// ROW MANAGEMENT
+// Table columns: # | Line1 | Line2 | Line3 | Line4 | Size | LetterH | del
+// Color / Mount / Qty are set via Edit modal only
+// ══════════════════════════════════════════════
+function addRow(d){
+  rowCount++;
+  d=d||{};
+  const c=document.getElementById('rows-container');
+  const div=document.createElement('div');
+  div.className='row-item';
+  // Store color/mount/qty as data attributes (hidden from table, accessible via modal)
+  div.dataset.color = d.color||'Black';
+  div.dataset.mount = d.mount||'Tape';
+  div.dataset.qty   = d.qty||1;
+  div.innerHTML=`
+    <div class="row-num">${rowCount}</div>
+    <input type="text" value="${esc(d.line1)}" data-field="line1"/>
+    <input type="text" value="${esc(d.line2)}" data-field="line2"/>
+    <input type="text" value="${esc(d.line3)}" data-field="line3"/>
+    <input type="text" value="${esc(d.line4)}" data-field="line4"/>
+    <input type="text" value="${esc(d.size||'')}" data-field="size"/>
+    <input type="text" value="${esc(d.letterH||'')}" data-field="letterH"/>
+    <button class="del-btn" onclick="this.closest('.row-item').remove()">×</button>`;
+  c.appendChild(div);
+}
+
+function collectRows(){
+  return[...document.querySelectorAll('.row-item')].map(item=>{
+    const g=f=>item.querySelector(`[data-field="${f}"]`).value.trim();
+    const line1=g('line1');
+    if(!line1)return null;
+    return{
+      line1,line2:g('line2'),line3:g('line3'),line4:g('line4'),
+      size:g('size'),letterH:g('letterH'),
+      color:item.dataset.color||'Black',
+      mount:item.dataset.mount||'Tape',
+      qty:parseInt(item.dataset.qty)||1
+    };
+  }).filter(Boolean);
+}
+
+function clearAll(){
+  document.getElementById('rows-container').innerHTML='';
+  document.getElementById('proj-name').value='';
+  document.getElementById('emp-name').value='';
+  rowCount=0;jobs=[];
+}
+
+function loadSample(){
+  clearAll();
+  document.getElementById('proj-name').value='1685 Collins';
+  document.getElementById('emp-name').value='Alberto Ortiz';
+  [
+    {line1:'WARNING MAXIMUM',line2:'Available Fault Current 37,957 Amps',line3:'Date: 11-07-2024',line4:'',color:'Black',size:'4"x4"',letterH:'3/4"',mount:'Tape',qty:2},
+    {line1:'MAIN DISCONNECT',line2:'480V / 3PH / 60Hz',line3:'',line4:'',color:'Black',size:'2"x3"',letterH:'3/4"',mount:'Tape',qty:1},
+    {line1:'PANEL LP-1',line2:'120/208V 3PH 4W',line3:'',line4:'',color:'Black',size:'2"x3"',letterH:'3/4"',mount:'Rivet',qty:4},
+    {line1:'EF-1',line2:'FED FROM E1-07HA',line3:'CKT-1,3',line4:'',color:'Black',size:'3"x2"',letterH:'3/4"',mount:'Rivet',qty:2},
+    {line1:'FIRE ALARM',line2:'DO NOT SHUT OFF',line3:'',line4:'',color:'Red',size:'2"x3"',letterH:'3/4"',mount:'Rivet',qty:2},
+    {line1:'EMERGENCY POWER',line2:'Panel EP-1',line3:'120/208V',line4:'Circuit 1,3',color:'Red',size:'2"x3"',letterH:'3/4"',mount:'Rivet',qty:1},
+  ].forEach(r=>addRow(r));
+}
+
+// ══════════════════════════════════════════════
+// EXCEL IMPORT
+// ══════════════════════════════════════════════
+const dz=document.getElementById('drop-zone'),fi=document.getElementById('file-input');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');if(e.dataTransfer.files[0])readExcel(e.dataTransfer.files[0]);});
+fi.addEventListener('change',e=>{if(e.target.files[0]){readExcel(e.target.files[0]);e.target.value='';}});
+
+function readExcel(file){
+  clearAll();
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const wb=XLSX.read(ev.target.result,{type:'binary'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    let pName='',pEmp='';
+    for(let i=0;i<Math.min(12,raw.length);i++){
+      const row=raw[i];
+      for(let j=0;j<row.length;j++){
+        const cell=String(row[j]).trim();
+        if(cell==='Project Name:'&&row[j+1])pName=String(row[j+1]).trim();
+        if(cell==='Employee Name:'&&row[j+1])pEmp=String(row[j+1]).trim();
+      }
+    }
+    document.getElementById('proj-name').value=pName;
+    document.getElementById('emp-name').value=pEmp;
+    let headerRow=-1;
+    for(let i=0;i<raw.length;i++){
+      if(raw[i].join('|').includes('Description')&&raw[i].join('|').includes('Label Color')){headerRow=i;break;}
+    }
+    let found=0;
+    if(headerRow>=0){
+      const hdr=raw[headerRow];
+      const idx={
+        line1:hdr.findIndex(h=>String(h).includes('Line 1')),
+        line2:hdr.findIndex(h=>String(h).includes('Line 2')),
+        line3:hdr.findIndex(h=>String(h).includes('Line 3')),
+        line4:hdr.findIndex(h=>String(h).includes('Line 4')),
+        color:hdr.findIndex(h=>String(h).toLowerCase().includes('label color')),
+        size:hdr.findIndex(h=>String(h).toLowerCase().includes('size')),
+        letterH:hdr.findIndex(h=>String(h).toLowerCase().includes('letter')),
+        mount:hdr.findIndex(h=>{const s=String(h).toLowerCase();return s.includes('tape')||s.includes('rivet');}),
+        qty:hdr.findIndex(h=>String(h).toLowerCase().includes('quant')),
+      };
+      for(let i=headerRow+1;i<raw.length;i++){
+        const row=raw[i];
+        const line1=String(row[idx.line1]||'').trim();
+        const color=String(row[idx.color]||'').trim();
+        if(!line1&&!color)continue;
+        if(line1.toLowerCase().includes('logistics'))break;
+        addRow({
+          line1,line2:String(row[idx.line2]||'').trim(),
+          line3:String(row[idx.line3]||'').trim(),
+          line4:idx.line4>=0?String(row[idx.line4]||'').trim():'',
+          color:color||'Black',size:String(row[idx.size]||'').trim(),
+          letterH:String(row[idx.letterH]||'').trim(),
+          mount:String(row[idx.mount]||'Tape').toLowerCase().includes('rivet')?'Rivet':'Tape',
+          qty:parseInt(row[idx.qty])||1
+        });
+        found++;
+      }
+    }
+    if(found===0){addRow();addRow();addRow();}
+    showToast(`Loaded ${found} rows — existing data cleared`);
+  };
+  reader.readAsBinaryString(file);
+}
+
+// ══════════════════════════════════════════════
+// GROUP INTO JOBS
+// ══════════════════════════════════════════════
+function processData(){
+  projectInfo={
+    name:document.getElementById('proj-name').value.trim()||'Untitled',
+    employee:document.getElementById('emp-name').value.trim()||'',
+    date:new Date().toLocaleDateString()
+  };
+  const rows=collectRows();
+  if(!rows.length){alert('Please add at least one label row.');return;}
+  const map={};
+  rows.forEach(row=>{
+    const key=`${row.color.toLowerCase()}__${row.size.replace(/['"]/g,'').toLowerCase()}`;
+    if(!map[key])map[key]={key,color:row.color,size:row.size,letterH:row.letterH,rows:[]};
+    map[key].rows.push(row);
+  });
+  jobs=Object.values(map);
+  renderPreview();
+  showSection('preview');
+}
+
+// ══════════════════════════════════════════════
+// SVG LABEL — two modes
+// PREVIEW (forExport=false): real bg color + white text (looks correct on screen)
+// EXPORT  (forExport=true):  white bg + black text + black rivets + red cut line (Ruby-safe)
+// ══════════════════════════════════════════════
+function makeLabelSVG(row,forExport){
+  const dim=parseSize(row.size);
+  const W=Math.round(dim.w*PPI),H=Math.round(dim.h*PPI);
+  const bg=forExport?'#ffffff':colorToHex(row.color);
+  const fg=forExport?'#000000':'#ffffff';
+  const hc=forExport?'#000000':'#ffffff';
+  const hasRivet=row.mount==='Rivet';
+  const rIn=parseFloat((RIVET_INSET*PPI).toFixed(3));
+  const rR=parseFloat((RIVET_RADIUS*PPI).toFixed(3));
+  const rY=H/2;
+  const rivetEls=hasRivet?`
+  <circle cx="${rIn}" cy="${rY}" r="${rR}" fill="${hc}"/>
+  <circle cx="${W-rIn}" cy="${rY}" r="${rR}" fill="${hc}"/>`:'';
+  const padX=hasRivet?rIn+rR+5:8,padY=7;
+  const tw=W-padX*2,th=H-padY*2;
+  const lines=[row.line1,row.line2,row.line3,row.line4].filter(l=>l&&l.trim());
+  const n=lines.length||1;
+  const longest=Math.max(...lines.map(l=>l.length),1);
+  const fsByH=Math.floor(th/n*0.72);
+  const fsByW=Math.floor(tw/(longest*0.56+1));
+  const fs=Math.max(6,Math.min(fsByH,fsByW,32));
+  const gap=fs*1.3;
+  const totalH=(n-1)*gap+fs;
+  const startY=(H-totalH)/2+fs*0.85;
+  const textEls=lines.map((line,i)=>
+    `<text x="${(W/2).toFixed(1)}" y="${(startY+i*gap).toFixed(1)}"
+      text-anchor="middle" font-family="Arial,Helvetica,sans-serif"
+      font-size="${fs}" font-weight="bold" fill="${fg}" letter-spacing="0.4">${escXML(line)}</text>`
+  ).join('\n  ');
+  const cutLine=`<rect x="0.5" y="0.5" width="${W-1}" height="${H-1}" fill="none" stroke="#ff0000" stroke-width="0.5"/>`;
+  return{W,H,svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <rect width="${W}" height="${H}" fill="${bg}"/>
+  ${rivetEls}
+  ${textEls}
+  ${cutLine}
+</svg>`};
+}
+
+// ══════════════════════════════════════════════
+// RENDER PREVIEW
+// ══════════════════════════════════════════════
+function renderPreview(){
+  const total=jobs.reduce((a,j)=>a+j.rows.reduce((b,r)=>b+r.qty,0),0);
+  document.getElementById('project-bar').innerHTML=`
+    <div class="project-bar-item"><span>Project</span><strong>${escXML(projectInfo.name)}</strong></div>
+    <div class="project-bar-item"><span>Employee</span><strong>${escXML(projectInfo.employee)||'—'}</strong></div>
+    <div class="project-bar-item"><span>Date</span><strong>${projectInfo.date}</strong></div>
+    <div class="project-bar-item"><span>Ruby Runs</span><strong>${jobs.length}</strong></div>
+    <div class="project-bar-item"><span>Total Labels</span><strong>${total}</strong></div>`;
+  const container=document.getElementById('jobs-container');
+  container.innerHTML='';
+  jobs.forEach((job,ji)=>{
+    const totalQty=job.rows.reduce((a,r)=>a+r.qty,0);
+    const tapeQty=job.rows.filter(r=>r.mount==='Tape').reduce((a,r)=>a+r.qty,0);
+    const rivetQty=job.rows.filter(r=>r.mount==='Rivet').reduce((a,r)=>a+r.qty,0);
+    const card=document.createElement('div');
+    card.className='job-card';
+    card.innerHTML=`
+      <div class="job-card-header">
+        <div class="job-swatch" style="background:${colorToHex(job.color)}"></div>
+        <div class="job-title">Run ${ji+1} — ${job.color.toUpperCase()} / ${job.size}</div>
+        <div class="job-badge">${totalQty} engravings</div>
+      </div>
+      <div class="job-meta">
+        <div class="job-meta-item"><span>Unique</span><strong>${job.rows.length}</strong></div>
+        <div class="job-meta-item"><span>Tape</span><strong>${tapeQty}</strong></div>
+        <div class="job-meta-item"><span>Rivet</span><strong>${rivetQty}</strong></div>
+        <div class="job-meta-item"><span>Letter H</span><strong>${job.letterH||'—'}</strong></div>
+      </div>
+      <div class="label-previews" id="prev-${ji}"></div>`;
+    container.appendChild(card);
+    const prevEl=document.getElementById(`prev-${ji}`);
+    job.rows.forEach((row,ri)=>{
+      const{W,H,svg}=makeLabelSVG(row,false);
+      const wrap=document.createElement('div');
+      wrap.className='label-wrap';
+      const maxW=160,ratio=W>maxW?maxW/W:1;
+      wrap.innerHTML=svg.replace(`width="${W}" height="${H}"`,`width="${Math.round(W*ratio)}" height="${Math.round(H*ratio)}"`);
+      if(row.qty>1){const b=document.createElement('div');b.className='qty-badge';b.textContent=`× ${row.qty}`;wrap.appendChild(b);}
+      const hint=document.createElement('div');hint.className='edit-hint';hint.textContent='click to edit';
+      wrap.appendChild(hint);
+      wrap.addEventListener('click',()=>openModal(ji,ri));
+      prevEl.appendChild(wrap);
+    });
+  });
+}
+
+// ══════════════════════════════════════════════
+// EDIT MODAL
+// ══════════════════════════════════════════════
+function openModal(ji,ri){
+  editingJob=ji;editingRow=ri;
+  const row=jobs[ji].rows[ri];
+  document.getElementById('ed-l1').value=row.line1||'';
+  document.getElementById('ed-l2').value=row.line2||'';
+  document.getElementById('ed-l3').value=row.line3||'';
+  document.getElementById('ed-l4').value=row.line4||'';
+  document.getElementById('ed-color').value=row.color||'Black';
+  document.getElementById('ed-size').value=row.size||'';
+  document.getElementById('ed-lh').value=row.letterH||'';
+  document.getElementById('ed-mount').value=row.mount||'Tape';
+  document.getElementById('ed-qty').value=row.qty||1;
+  refreshModal();
+  document.getElementById('edit-modal').classList.add('open');
+}
+function refreshModal(){
+  const row={
+    line1:document.getElementById('ed-l1').value,
+    line2:document.getElementById('ed-l2').value,
+    line3:document.getElementById('ed-l3').value,
+    line4:document.getElementById('ed-l4').value,
+    color:document.getElementById('ed-color').value,
+    size:document.getElementById('ed-size').value||'2"x3"',
+    letterH:document.getElementById('ed-lh').value,
+    mount:document.getElementById('ed-mount').value,
+    qty:1
+  };
+  const{W,H,svg}=makeLabelSVG(row,false);
+  const maxW=460,ratio=W>maxW?maxW/W:1;
+  document.getElementById('modal-preview').innerHTML=
+    svg.replace(`width="${W}" height="${H}"`,`width="${Math.round(W*ratio)}" height="${Math.round(H*ratio)}"`);
+}
+function saveModal(){
+  if(editingJob<0||editingRow<0)return;
+  const row=jobs[editingJob].rows[editingRow];
+  row.line1=document.getElementById('ed-l1').value.trim();
+  row.line2=document.getElementById('ed-l2').value.trim();
+  row.line3=document.getElementById('ed-l3').value.trim();
+  row.line4=document.getElementById('ed-l4').value.trim();
+  row.color=document.getElementById('ed-color').value;
+  row.size=document.getElementById('ed-size').value.trim()||'2"x3"';
+  row.letterH=document.getElementById('ed-lh').value.trim();
+  row.mount=document.getElementById('ed-mount').value;
+  row.qty=parseInt(document.getElementById('ed-qty').value)||1;
+  // Also update the row-item data attributes
+  const items=document.querySelectorAll('.row-item');
+  // Re-group
+  const all=jobs.flatMap(j=>j.rows);
+  const map={};
+  all.forEach(r=>{
+    const key=`${r.color.toLowerCase()}__${r.size.replace(/['"]/g,'').toLowerCase()}`;
+    if(!map[key])map[key]={key,color:r.color,size:r.size,letterH:r.letterH,rows:[]};
+    map[key].rows.push(r);
+  });
+  jobs=Object.values(map);
+  closeModal();
+  renderPreview();
+  showToast('Label updated');
+}
+function closeModal(){
+  document.getElementById('edit-modal').classList.remove('open');
+  editingJob=-1;editingRow=-1;
+}
+document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+// ══════════════════════════════════════════════
+// EXPORT ENGINE — MULTI-PAGE PAGINATION
+//
+// Sheet size: 24" × 12" (standard Trotec Ruby bed)
+// Logic:
+//   1. Expand all rows by qty → flat list of copies
+//   2. Calculate how many labels fit on one page
+//      cols = floor((sheet_w - margins) / (label_w + gap))
+//      rows = floor((sheet_h - header - margins) / (label_h + gap))
+//      per_page = cols × rows
+//   3. Split copies into chunks of per_page
+//   4. Each chunk → one SVG file → one Ruby run
+//   5. Files named: Employee_Color_Size_LH_Page1of3.svg
+//
+// Example: 50 red 2"x3" rivet labels on 24"x12":
+//   label 3" wide, cols = floor((1728-56+12)/(216+12)) = 7
+//   label 2" tall, rows = floor((864-56+12)/(144+12)) = 5
+//   per_page = 35 → needs 2 pages (35 + 15)
+// ══════════════════════════════════════════════
+
+const SHEET_W_IN = 24;   // standard Ruby bed width
+const SHEET_H_IN = 12;   // standard Ruby bed height
+const PAGE_MAR   = 28;   // margin in points
+const PAGE_GAP   = 12;   // gap between labels in points
+const HDR_H      = 28;   // header text height in points
+
+function calcPagination(job){
+  const dim = parseSize(job.size);
+  const LW  = Math.round(dim.w * PPI);
+  const LH  = Math.round(dim.h * PPI);
+  const SW  = Math.round(SHEET_W_IN * PPI);   // 1728pt
+  const SH  = Math.round(SHEET_H_IN * PPI);   //  864pt
+
+  const usableW = SW - PAGE_MAR * 2;
+  const usableH = SH - PAGE_MAR * 2 - HDR_H;
+
+  const cols = Math.max(1, Math.floor((usableW + PAGE_GAP) / (LW + PAGE_GAP)));
+  const rows = Math.max(1, Math.floor((usableH + PAGE_GAP) / (LH + PAGE_GAP)));
+  const perPage = cols * rows;
+
+  // Expand copies
+  const copies = [];
+  job.rows.forEach(row => { for(let q=0;q<row.qty;q++) copies.push(row); });
+
+  const totalPages = Math.max(1, Math.ceil(copies.length / perPage));
+
+  return { LW, LH, SW, SH, cols, rows, perPage, copies, totalPages };
+}
+
+function buildPageSVG(job, pageIndex){
+  const { LW, LH, SW, SH, cols, perPage, copies, totalPages } = calcPagination(job);
+
+  const start = pageIndex * perPage;
+  const slice = copies.slice(start, start + perPage);
+
+  const now = new Date().toLocaleDateString();
+  let content = '';
+
+  slice.forEach((row, i) => {
+    const col = i % cols;
+    const r   = Math.floor(i / cols);
+    const x   = PAGE_MAR + col * (LW + PAGE_GAP);
+    const y   = PAGE_MAR + HDR_H + r  * (LH + PAGE_GAP);
+    const { svg } = makeLabelSVG(row, true);
+    const inner = svg.replace(/<svg[^>]*>/, '').replace('</svg>', '');
+    content += `  <!-- ${escXML(row.line1)} | ${row.mount} -->\n  <g transform="translate(${x},${y})">${inner}  </g>\n`;
+  });
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Power Design Inc · Phenolic Label Generator · Trotec Ruby
+  Employee : ${projectInfo.employee}   Project : ${projectInfo.name}
+  Color    : ${job.color}   Size : ${job.size}   Letter H : ${job.letterH||'—'}
+  Page     : ${pageIndex+1} of ${totalPages}   Labels this page: ${slice.length}   Total: ${copies.length}
+  Sheet    : ${SHEET_W_IN}" × ${SHEET_H_IN}" (standard Ruby bed)   Date : ${now}
+  Ruby import: white bg · black engrave · #ff0000 = vector cut line
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="${SW}" height="${SH}" viewBox="0 0 ${SW} ${SH}">
+  <rect width="${SW}" height="${SH}" fill="white"/>
+  <text x="${PAGE_MAR}" y="18" font-family="Arial" font-size="9" fill="#555">
+    ${escXML(projectInfo.employee)} · ${escXML(projectInfo.name)} · ${escXML(job.color)} ${escXML(job.size)} · LH: ${escXML(job.letterH||'—')} · Page ${pageIndex+1}/${totalPages} · ${slice.length} labels · ${now}
+  </text>
+${content}</svg>`;
+}
+
+function buildFilename(job, pageIndex, totalPages){
+  const emp   = san(projectInfo.employee || 'PDI');
+  const color = san(job.color);
+  const size  = job.size.replace(/['"]/g,'').replace(/[^a-zA-Z0-9]/g,'-');
+  const lh    = (job.letterH||'').replace(/['"]/g,'').replace(/[^a-zA-Z0-9]/g,'');
+  const page  = totalPages > 1 ? `_Page${pageIndex+1}of${totalPages}` : '';
+  return `${emp}_${color}_${size}${lh?'_LH'+lh:''}${page}.svg`;
+}
+
+// ── EXPORT PANEL ──────────────────────────────
+function renderExport(){
+  const totalAll = jobs.reduce((a,j)=>a+j.rows.reduce((b,r)=>b+r.qty,0),0);
+  const totalFiles = jobs.reduce((a,j)=>a+calcPagination(j).totalPages,0);
+  document.getElementById('save-all-label').textContent =
+    `${jobs.length} job${jobs.length!==1?'s':''} · ${totalAll} labels · ${totalFiles} SVG file${totalFiles!==1?'s':''} total`;
+
+  const container = document.getElementById('export-container');
+  container.innerHTML = '';
+
+  jobs.forEach((job, ji) => {
+    const { perPage, copies, totalPages } = calcPagination(job);
+    const totalQty   = copies.length;
+    const rivetCount = job.rows.filter(r=>r.mount==='Rivet').reduce((a,r)=>a+r.qty,0);
+    const tapeCount  = job.rows.filter(r=>r.mount==='Tape').reduce((a,r)=>a+r.qty,0);
+
+    const pageLines = Array.from({length:totalPages},(_,p)=>{
+      const start = p*perPage;
+      const count = Math.min(perPage, totalQty-start);
+      return `<div style="font-size:11px;color:var(--muted);font-family:var(--cond);display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);">
+        <span>Page ${p+1} of ${totalPages}</span>
+        <span style="color:var(--text);font-weight:600;">${count} labels</span>
+        <button class="btn btn-outline" style="padding:4px 14px;font-size:10px;" onclick="downloadPage(${ji},${p})">↓ SVG</button>
+      </div>`;
+    }).join('');
+
+    const card = document.createElement('div');
+    card.className = 'export-card';
+    card.innerHTML = `
+      <div class="export-card-header">
+        <div style="width:16px;height:16px;border-radius:3px;background:${colorToHex(job.color)};border:1px solid rgba(255,255,255,0.15);flex-shrink:0"></div>
+        <div class="export-card-title">Run ${ji+1} — ${job.color} / ${job.size}</div>
+      </div>
+      <div class="export-meta">
+        <b>${totalQty}</b> total labels · <b>${job.rows.length}</b> unique designs<br>
+        Tape: <b>${tapeCount}</b> · Rivet: <b>${rivetCount}</b> · Letter H: <b>${job.letterH||'—'}</b><br>
+        Fits <b>${perPage}</b> per page → <b>${totalPages} SVG file${totalPages!==1?'s':''}</b>
+      </div>
+      <div class="export-note">
+        ▸ ${SHEET_W_IN}"×${SHEET_H_IN}" sheet · black engrave · red cut line<br>
+        ${rivetCount>0?'Rivet holes: 0.12" inset · 0.02" radius':'No rivet holes this run'}
+      </div>
+      <div style="margin:4px 0;">${pageLines}</div>
+      <button class="btn btn-primary" onclick="downloadAllPages(${ji})">↓ Download All ${totalPages} Page${totalPages!==1?'s':''}</button>`;
+    container.appendChild(card);
+  });
+}
+
+function downloadPage(ji, pageIndex){
+  const job   = jobs[ji];
+  const { totalPages } = calcPagination(job);
+  const svg   = buildPageSVG(job, pageIndex);
+  const fname = buildFilename(job, pageIndex, totalPages);
+  const blob  = new Blob([svg], {type:'image/svg+xml;charset=utf-8'});
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast(`Saved: ${fname}`);
+}
+
+function downloadAllPages(ji){
+  const job = jobs[ji];
+  const { totalPages } = calcPagination(job);
+  for(let p=0; p<totalPages; p++){
+    setTimeout(()=>downloadPage(ji,p), p*400);
+  }
+  showToast(`Saving ${totalPages} page${totalPages!==1?'s':''} for Run ${ji+1}…`);
+}
+
+function downloadAll(){
+  if(!jobs.length){ showToast('No jobs to download'); return; }
+  let delay = 0;
+  jobs.forEach((job, ji)=>{
+    const { totalPages } = calcPagination(job);
+    for(let p=0; p<totalPages; p++){
+      setTimeout(()=>downloadPage(ji,p), delay);
+      delay += 420;
+    }
+  });
+  const totalFiles = jobs.reduce((a,j)=>a+calcPagination(j).totalPages,0);
+  showToast(`Saving all ${totalFiles} file${totalFiles!==1?'s':''}…`);
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+function showSection(name){
+  document.getElementById('s-input').style.display=name==='input'?'block':'none';
+  document.getElementById('s-preview').style.display=name==='preview'?'block':'none';
+  document.getElementById('s-export').style.display=name==='export'?'block':'none';
+  document.getElementById('pill-1').className='step-pill'+(name==='input'?' active':' done');
+  document.getElementById('pill-2').className='step-pill'+(name==='preview'?' active':name==='export'?' done':'');
+  document.getElementById('pill-3').className='step-pill'+(name==='export'?' active':'');
+  if(name!=='input')window.scrollTo({top:0,behavior:'smooth'});
+}
+function goToInput(){showSection('input');}
+function goToPreview(){showSection('preview');}
+function goToExport(){renderExport();showSection('export');}
+
+// ── INIT ──
+addRow();addRow();addRow();
+</script>
+</body>
+</html>
